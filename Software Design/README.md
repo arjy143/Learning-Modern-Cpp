@@ -1,0 +1,1 @@
+Going through the book "C++ Software Design" by Kalus Iglberger
