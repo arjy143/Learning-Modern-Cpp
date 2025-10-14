@@ -12,10 +12,31 @@ void neverThrows() noexcept
     throw std::runtime_error("runtime errror");
 }
 
+class Test
+{
+    public:
+        Test() = default;
+        Test(const Test&) 
+        {
+            std::cout << "copy constructor" << "\n";
+        }
+        Test(Test&&) noexcept 
+        {
+            std::cout << "move constructor with noexcept" << "\n";
+        }
 
+        // ~Test()
+        // {
+        //     std::cout << "destructor" << "\n";
+        // }
+
+};
 
 int main(int argc, char** argv)
 {
+
+    {Test test;
+    Test test2 = std::move(test);}
     try
     {
         neverThrows();
