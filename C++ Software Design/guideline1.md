@@ -15,3 +15,4 @@ Try to avoid unnecessary coupling and dependencies.
 c++ modules, constexpr, noexcept
 
 [modules](/random%20code%20concepts/modules/modules.md)
+[noexcept](/random%20code%20concepts/noexcept/noexcept.md)
