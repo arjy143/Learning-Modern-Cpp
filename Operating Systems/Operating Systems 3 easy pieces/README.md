@@ -1,0 +1,1 @@
+Going over some of the concepts from the book "Operating Systems 3 easy pieces" by the Arpaci-Dusseaus.
