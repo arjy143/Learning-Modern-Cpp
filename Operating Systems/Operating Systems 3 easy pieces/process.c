@@ -27,3 +27,5 @@ int main(int argc, char** argv)
     }
     return 0;
 }
+// process id: &d
+// parent of 4699 ( pid: 4698)
