@@ -29,8 +29,14 @@ int main(int argc, char** argv)
 
     /*
     Using fork, wait and exec together lets you pipe and redirect output in bash easily.
+    If i did something like "ls > out.txt", stdout (file descriptor = 1) is redirected to out.txt, then exec(ls) is called,
+    which inherits that file descriptor, letting it output directly to out.txt.
+    
     */
+
+    int num = 1;
     int rc = fork();
+    
 
     if (rc < 0)
     {
@@ -42,6 +48,8 @@ int main(int argc, char** argv)
     else if (rc == 0)
     {
         //successully created child process
+        ++num;
+        printf("pid %d: num after fork = %d\n", (int)getpid(), num);
         printf("child (pid: %d)\n", (int)getpid());
         char* myargs[3];
         myargs[0] = strdup("ls");
@@ -53,8 +61,10 @@ int main(int argc, char** argv)
         }
     else
     {
+        printf("pid %d: num before wait = %d\n", (int)getpid(), num);
         int rc_wait = wait(0);
-        printf("rc_wait: %d", rc_wait);
+        printf("pid %d: num after wait = %d\n", (int)getpid(), num);
+        printf("rc_wait: %d\n", rc_wait);
         //path for parent process
         printf("parent of %d ( pid: %d)\n", rc, (int)getpid());
     }
