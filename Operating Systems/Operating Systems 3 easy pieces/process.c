@@ -7,6 +7,14 @@ int main(int argc, char** argv)
     printf("process id: %d\n", (int)getpid());
 
     /*
+    File descriptor just refers to a table that each process has that maps an integer id to a kernel file object like stdout.
+    0 - stdin
+    1 - stdout
+    2 - stderr
+    later ones are for other fd's like if you open a file somewhere
+    */
+
+    /*
     Fork leads to 2 processes running the same code, but with different address spaces.
     A new pcb is allocated for the child process, with its own metadata and everything
     Only copied on write.
@@ -17,7 +25,8 @@ int main(int argc, char** argv)
     /*
     Wait system call makes the parent wait until the child is finished executing, then returns the child process ID to the parent.
     Parent in blocked state until child is finished.
-    Use arguments or variants of wait, like waitpid, to wait for a specific child to finish
+    Use arguments or variants of wait, like waitpid, to wait for a specific child to finish.
+    Waiting inside process without any children will return -1.
     */
 
     /*
@@ -31,12 +40,14 @@ int main(int argc, char** argv)
     Using fork, wait and exec together lets you pipe and redirect output in bash easily.
     If i did something like "ls > out.txt", stdout (file descriptor = 1) is redirected to out.txt, then exec(ls) is called,
     which inherits that file descriptor, letting it output directly to out.txt.
-    
+
     */
 
     int num = 1;
     int rc = fork();
-    
+    int irrelevant_process = fork();
+
+    printf("irrelevant process pid: %d\n", irrelevant_process);
 
     if (rc < 0)
     {
@@ -51,6 +62,8 @@ int main(int argc, char** argv)
         ++num;
         printf("pid %d: num after fork = %d\n", (int)getpid(), num);
         printf("child (pid: %d)\n", (int)getpid());
+
+        //printf("wait result: %d\n", wait());
         char* myargs[3];
         myargs[0] = strdup("ls");
         myargs[1] = strdup("-l");
@@ -62,7 +75,7 @@ int main(int argc, char** argv)
     else
     {
         printf("pid %d: num before wait = %d\n", (int)getpid(), num);
-        int rc_wait = wait(0);
+        int rc_wait = waitpid(rc);
         printf("pid %d: num after wait = %d\n", (int)getpid(), num);
         printf("rc_wait: %d\n", rc_wait);
         //path for parent process
