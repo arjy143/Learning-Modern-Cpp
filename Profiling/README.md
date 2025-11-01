@@ -20,3 +20,5 @@ Tools:
 - cachegrind for simulating cpu cache in order to optimise better
 - massif for heap memory usage over time
 - callgrind - for profiling cpu graph performance
+
+If you want to specify memcheck you can use the flag ```--leak-check=yes```.
