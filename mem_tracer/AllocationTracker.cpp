@@ -4,6 +4,7 @@
 #include <new>
 #include <mutex>
 
+
 /*
     This is a simple allocation tracker that overrides new and delete, and keeps track of them and reports what
     memory is not freed, like a simple valgrind.
@@ -14,19 +15,27 @@
 //because the allocation tracker itself allocates memory.
 thread_local bool g_allocating = false;
 
+
+struct AllocInfo
+{
+    std::size_t size;
+    const char* file;
+    int line;
+};
+
 class AllocationTracker
 {
     private:
-        std::unordered_map<void*, std::size_t> _allocations;
+        std::unordered_map<void*, AllocInfo> _allocations;
         std::mutex _mutex;
         AllocationTracker() = default;
     
     public:
-        void add(void* ptr, std::size_t size)
+        void add(void* ptr, std::size_t size, const char* file, int line)
         {
             std::lock_guard<std::mutex> lock(_mutex);
             std::cout << "Allocating ptr: " << ptr << "\n";
-            _allocations[ptr] = size;
+            _allocations[ptr] = AllocInfo{size, file, line};
             std::cout << "Amount of allocations after add: " << _allocations.size() << "\n";
         }
 
@@ -49,9 +58,10 @@ class AllocationTracker
             else
             {
                 std::cout << "Memory leaks were detected:\n";
-                for (auto& [ptr, size] : _allocations)
+                for (auto& [ptr, info] : _allocations)
                 {
-                    std::cout << "Pointer: " << ptr << ", Bytes: " << size << "\n";
+
+                    std::cout << "File " << info.file << " at line " << info.line << "\n->Pointer: " << ptr << ", Bytes: " << info.size << "\n";
                 }
             }
         }
@@ -64,8 +74,10 @@ class AllocationTracker
         }
 };
 
+
 //global overrides of new and delete
-void* operator new(size_t size)
+
+void* operator new(std::size_t size, const char* file, int line)
 {
     void* ptr = std::malloc(size);
 
@@ -78,7 +90,7 @@ void* operator new(size_t size)
         std::cout << "using custom new: " << ptr << "\n";
 
         g_allocating = true;
-        AllocationTracker::instance().add(ptr, size);
+        AllocationTracker::instance().add(ptr, size, file, line);
         g_allocating = false;
     }
 
@@ -99,11 +111,18 @@ void operator delete(void* ptr) noexcept
     std::free(ptr);
 }
 
-void* operator new[](std::size_t size) { return ::operator new(size); }
+void* operator new[](std::size_t size, const char* file, int line) 
+{
+    return ::operator new(size, file, line);
+}
 void operator delete[](void* ptr) noexcept { ::operator delete(ptr); }
 
 void operator delete(void* ptr, std::size_t) noexcept { ::operator delete(ptr); }
 void operator delete[](void* ptr, std::size_t) noexcept { ::operator delete(ptr); }
+
+
+#define new new(__FILE__, __LINE__)
+
 int main()
 {
     int* a = new int;
@@ -121,14 +140,15 @@ int main()
 // g++ -std=c++17 -pthread -Wall -Wextra -O2 AllocationTracker.cpp -o AllocationTracker.exe
 
 
-// using custom new: 0x5b4ce8dcc2b0
-// Allocating ptr: 0x5b4ce8dcc2b0
+// using custom new: 0x62b1f772f2b0
+// Allocating ptr: 0x62b1f772f2b0
 // Amount of allocations after add: 1
-// using custom new: 0x5b4ce8dcc7e0
-// Allocating ptr: 0x5b4ce8dcc7e0
+// using custom new: 0x62b1f772f7f0
+// Allocating ptr: 0x62b1f772f7f0
 // Amount of allocations after add: 2
-// using custom delete: 0x5b4ce8dcc2b0
-// Erasing ptr: 0x5b4ce8dcc2b0
+// using custom delete: 0x62b1f772f2b0
+// Erasing ptr: 0x62b1f772f2b0
 // Amount of allocations after delete: 1
 // Memory leaks were detected:
-// Pointer: 0x5b4ce8dcc7e0, Bytes: 40
+// File AllocationTracker.cpp at line 129
+// ->Pointer: 0x62b1f772f7f0, Bytes: 40
