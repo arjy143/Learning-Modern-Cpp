@@ -46,4 +46,29 @@ class Fifo1: private Alloc
         auto full() const { return size() == capacity(); }
         auto push(T const& value);
         auto pop(T* value); 
+
+        auto push(T const& value)
+        {
+            if (full())
+            {
+                return false;
+            }
+            std::allocator_traits<Alloc>::construct(*this, ring + (pushCursor % capacity), value)
+            ++pushCursor;
+
+            return true;
+        }
+
+        auto pop(T& value)
+        {
+            if (empty())
+            {
+                return false;
+            }
+            value = ring[popCursor % capacity];
+            ring[popCursor % capacity].~T();
+            ++popCursor;
+
+            return true;
+        }
 };
