@@ -7,7 +7,8 @@
 
 /*
     This is a simple allocation tracker that overrides new and delete, and keeps track of them and reports what
-    memory is not freed, like a simple valgrind.
+    memory is not freed, like a simple valgrind memcheck.
+    It only checks for new and delete, not malloc and free (yet).
 */
 
 
@@ -121,6 +122,7 @@ void operator delete(void* ptr, std::size_t) noexcept { ::operator delete(ptr); 
 void operator delete[](void* ptr, std::size_t) noexcept { ::operator delete(ptr); }
 
 
+//file and line automatically given in any call to new, so we can store it for later
 #define new new(__FILE__, __LINE__)
 
 int main()
