@@ -43,7 +43,7 @@ class Fifo1: private Alloc
         auto capacity() const { return capacity; }
         auto size() const { return pushCursor - popCursor; }
         auto empty() const { return size() == 0; }
-        auto full() const { return size() == capacity(); }
+        auto full() const { return (size() == capacity()); }
         auto push(T const& value);
         auto pop(T* value); 
 
@@ -72,3 +72,50 @@ class Fifo1: private Alloc
             return true;
         }
 };
+
+
+//testing code
+
+#include <chrono>
+#include <iostream>
+
+int main()
+{
+    //testing on 1 million 
+    constexpr const std::size_t N = 1000000;
+    
+    //capacity of 1024
+    Fifo1<int> q(1024);
+
+    // for (int i = 0; i < 100; i++)
+    // {
+    //     q.push(i);
+    //     q.pop(&i);
+    // }
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    int val = 0;
+    for (std::size_t i = 0; i < N; ++i)
+    {
+        //spin if the queue is full
+        while (q.full()){}
+
+        q.push(i);
+
+        //spin if empty
+        while (q.empty()){}
+
+        q.pop(&val);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_time = end - start;
+    double ops_per_sec = N / elapsed_time.count();
+
+    std::cout << "N: " << N << "\n";
+    std::cout << "time: " << elapsed_time.count() << "\n";
+    std::cout << "ops_per_sec: " << ops_per_sec << "\n";
+
+    return 0;
+}
