@@ -20,6 +20,14 @@ public:
     LRUCache(size_t capacity) : capacity_(capacity) 
     {}
 
+    //no copy constructor or assignment
+    LRUCache(const LRUCache&)=delete;
+    LRUCache& operator==(const LRUCache&)=delete;
+
+    //allow move constructor and assignment
+    LRUCache(LRUCache&&)=default;
+    LRUCache&operator=(LRUCache&&)=default;
+
     std::optional<V> get(const K& key)
     {
         //if the key exists, then get the corresponding iterator, move it up the recency list, and return the associated value.
@@ -72,5 +80,13 @@ public:
             lookup_table_.emplace(new_iterator->first, new_iterator); 
         }
     }
+
+    //check existence without causing cache update
+    bool contains(const K& key)
+    {
+        return lookup_table_.count(key) > 0;
+    }
+
+
 
 };
