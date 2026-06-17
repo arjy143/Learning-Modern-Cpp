@@ -1,9 +1,10 @@
+#pragma once
 #include <unordered_map>
 #include <list>
 #include <optional>
 #include <iterator>
 
-
+//basic LRU cache using only STL, and very few performance improvments
 template <typename K, typename V>
 class LRUCache
 {
