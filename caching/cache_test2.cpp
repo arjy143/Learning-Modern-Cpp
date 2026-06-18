@@ -4,6 +4,10 @@
 #include <cstdlib>
 
 int main(int argc, char** argv) {
+
+    //check if nodeslot is actually 24 bytes or if its being padded to 32 bytes
+    static_assert(sizeof(NodeSlot<uint64_t, uint64_t>) == 24);
+
     size_t   capacity  = argc > 1 ? strtoull(argv[1], nullptr, 10) : 100000;
     uint64_t num_ops   = argc > 2 ? strtoull(argv[2], nullptr, 10) : 20000000;
     uint64_t key_space = argc > 3 ? strtoull(argv[3], nullptr, 10) : 300000;
@@ -36,6 +40,7 @@ int main(int argc, char** argv) {
     printf("checksum=%llu\n", (unsigned long long)sink);
 }
 
+//only node pool optimisation
 /*
  Performance counter stats for './bench2':
 
@@ -52,4 +57,23 @@ int main(int argc, char** argv) {
 
        6.988292000 seconds user
        0.071593000 seconds sys
+*/
+
+//node pool + contiguous flat hash map
+/*
+Performance counter stats for './bench2':
+
+          2,578.00 msec task-clock                       #    0.978 CPUs utilized             
+               709      context-switches                 #  275.020 /sec                      
+                 8      cpu-migrations                   #    3.103 /sec                      
+               977      page-faults                      #  378.976 /sec                      
+     5,538,300,732      cycles                           #    2.148 GHz                       
+     1,692,536,552      instructions                     #    0.31  insn per cycle            
+       207,103,731      branches                         #   80.335 M/sec                     
+        36,492,860      branch-misses                    #   17.62% of all branches           
+
+       2.636935865 seconds time elapsed
+
+       2.566932000 seconds user
+       0.008011000 seconds sys
 */

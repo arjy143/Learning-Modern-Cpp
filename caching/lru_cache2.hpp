@@ -1,11 +1,12 @@
 #pragma once
-#include <unordered_map>
-#include <list>
 #include <optional>
-#include <iterator>
 #include <vector>
+#include <cstdint>
+#include <bit>
+#include <cmath>
+#include <functional>
 
-//LRU cache using custom node pool
+//LRU cache using custom node pool and custom flat map
 
 //manual linked list, using int instead of pointers to refer to the previous and next nodes. This is because the ints are indices into the node pool.
 template <typename K, typename V>
@@ -25,14 +26,18 @@ using Node = std::pair<K, V>;
 
 private:
     size_t capacity_;
+    size_t mask_;
+
     int head_;
     int tail_;
     int free_head_;
 
     static constexpr int NIL = -1;
+    static constexpr int EMPTY_BUCKET = -1;
+    static constexpr float MAX_LOAD_FACTOR = 0.7;
 
-    //lookup table maps key to index in node pool
-    std::unordered_map<K, int> lookup_table_;
+    //new more performant lookup table - each entry is a slot index into the node pool.
+    std::vector<int> table_;
 
     std::vector<NodeSlot<K, V>> node_pool_;
 
@@ -78,9 +83,96 @@ private:
         tail_ = slot;
     }
 
+    //mixing algorithm, taking constants from splitmix64
+    //the reason for this is when masking using std::hash<uint64_t>, the values cluster badly, leading to a lot of collisions.
+    //this algorithm works by diffusing each input bit across many output bits per multiplication, leading to less collisions.
+    static uint64_t mix(uint64_t h) 
+    {
+        h ^= h >> 30;
+        h *= 0xBF58476D1CE4E5B9ULL;
+        h ^= h >> 27;
+        h *= 0x94D049BB133111EBULL;
+        h ^= h >> 31;
+        return h;
+    }
+
+    //this just tells you which array index to start probing at for a given key.
+    size_t bucket(const K& key) const
+    {
+        uint64_t h = std::hash<K>{}(key);
+        
+        h = mix(h);
+
+        return h & mask_;
+    }
+    
+    //find the table index of the key
+    int find(const K& key)
+    {
+        size_t i = bucket(key);
+
+        while (table_[i] != EMPTY_BUCKET)
+        {
+            if (node_pool_[table_[i]].key == key)
+            {
+                return (int)i;
+            }
+            i = (i + 1) & mask_; 
+        }
+        return EMPTY_BUCKET;
+    }
+   
+    void erase(const K& key)
+    {
+        //use the same logic as the find function to find the key
+        size_t i = bucket(key);
+
+        while (table_[i] != EMPTY_BUCKET && node_pool_[table_[i]].key != key)
+        {
+            i = (i + 1) & mask_; 
+        }
+
+        //key not present
+        if (table_[i] == EMPTY_BUCKET)
+        {
+            return;
+        }
+
+        //key present. now we need to remove the item but also backwards shift every item in the chain afterwards, so that they are not lost
+        size_t current = (i + 1) & mask_;
+
+        while (table_[current] != EMPTY_BUCKET)
+        {
+            size_t home = bucket(node_pool_[table_[current]].key);
+
+            if (((current - home) & mask_) >= ((current - i) & mask_))
+            {
+                table_[i] = table_[current];    
+                i = current;
+            }
+
+            current = (current + 1) & mask_;
+        }
+
+        table_[i] = EMPTY_BUCKET;
+    }
+
+    void insert(const K& key, int slot)
+    {
+        size_t i = bucket(key);
+
+        while (table_[i] != EMPTY_BUCKET)
+        {
+            i = (i + 1) & mask_;
+        }
+
+        table_[i] = slot;
+    }
+
 public:
     LRUCache2(size_t capacity) : capacity_(capacity) 
     {
+        //set up node pool and link the nodes together
         if (capacity_ == 0)
         {
             free_head_ = NIL;
@@ -99,6 +191,14 @@ public:
         node_pool_[capacity_ - 1].next = NIL;
         
         free_head_ = 0;
+
+        //set up the table, calculate a size, and fill with -1
+        auto needed = static_cast<size_t>(std::ceil(capacity_ / MAX_LOAD_FACTOR));
+        auto table_size = std::bit_ceil(needed);
+
+        mask_ = table_size - 1;
+
+        table_.assign(table_size, EMPTY_BUCKET);
     }
 
     //no copy constructor or assignment
@@ -111,15 +211,16 @@ public:
 
     std::optional<V> get(const K& key)
     {
-        //if the key exists, then get the corresponding iterator, move it up the recency list, and return the associated value.
-        auto it = lookup_table_.find(key);
-        if (it != lookup_table_.end())
+        //check if the key exists by hashing it and seeing if a value exists for it in the table
+        
+
+        auto i = find(key);
+        if (i != EMPTY_BUCKET)
         {
-            auto& index = it->second;
 
-            auto& node_slot = node_pool_[index];
+            auto& node_slot = node_pool_[table_[i]];
 
-            move_to_mru(index);
+            move_to_mru(table_[i]);
 
             return node_slot.value;
         }
@@ -135,15 +236,13 @@ public:
         }
 
         //if key exists already, then overwrite it
-        auto it = lookup_table_.find(key);
-        if (it != lookup_table_.end())
+        auto i = find(key);
+        if (i != EMPTY_BUCKET)
         {
             //get index of existing data and overwrite with new data.
-            auto& index = it->second;
+            node_pool_[table_[i]].value = std::move(value);
 
-            node_pool_[index].value = std::move(value);
-
-            move_to_mru(index);
+            move_to_mru(table_[i]);
         }
         else
         {
@@ -152,7 +251,7 @@ public:
             {
                 int victim = head_;
 
-                lookup_table_.erase(node_pool_[victim].key);
+                erase(node_pool_[victim].key);
 
                 head_ = node_pool_[victim].next;
                 
@@ -179,14 +278,14 @@ public:
 
             link_at_mru(slot);
 
-            lookup_table_.emplace(node_pool_[slot].key, slot);
+            insert(node_pool_[slot].key, slot);
         }
     }
 
     //check existence without causing cache update
     bool contains(const K& key)
     {
-        return lookup_table_.count(key) > 0;
+        return find(key) != EMPTY_BUCKET;
     }
 
 
