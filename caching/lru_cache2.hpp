@@ -22,8 +22,6 @@ template <typename K, typename V>
 class LRUCache2
 {
 
-using Node = std::pair<K, V>;
-
 private:
     size_t capacity_;
     size_t mask_;
@@ -206,10 +204,10 @@ public:
     LRUCache2& operator=(const LRUCache2&)=delete;
 
     //allow move constructor and assignment
-    LRUCache2(LRUCache2&&)=default;
-    LRUCache2&operator=(LRUCache2&&)=default;
+    LRUCache2(LRUCache2&&) noexcept = default;
+    LRUCache2&operator=(LRUCache2&&) noexcept = default;
 
-    std::optional<V> get(const K& key)
+    [[nodiscard]] std::optional<V> get(const K& key)
     {
         //check if the key exists by hashing it and seeing if a value exists for it in the table
         
@@ -283,7 +281,7 @@ public:
     }
 
     //check existence without causing cache update
-    bool contains(const K& key)
+    [[nodiscard]] bool contains(const K& key)
     {
         return find(key) != EMPTY_BUCKET;
     }
