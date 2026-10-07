@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.20)
+project(cout2log CXX)
+find_package(Clang REQUIRED CONFIG)
+add_executable(cout2log cout2log.cpp)
+target_include_directories(cout2log PRIVATE ${CLANG_INCLUDE_DIRS})
+target_compile_options(cout2log PRIVATE -std=c++17 -fno-rtti)
+target_link_libraries(cout2log PRIVATE clang-cpp LLVM)
