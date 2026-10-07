@@ -1,0 +1,24 @@
+name: clang-testing
+
+on:
+  push:
+    paths: ["clang-testing/**", ".github/workflows/clang-testing.yml"]
+  pull_request:
+    paths: ["clang-testing/**", ".github/workflows/clang-testing.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: clang-testing
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Clang libraries
+        run: sudo apt-get update && sudo apt-get install -y libclang-18-dev llvm-18-dev ninja-build
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DClang_DIR=/usr/lib/llvm-18/lib/cmake/clang
+          cmake --build build
+      - name: Test
+        run: tests/run.sh build/cout2log
