@@ -1,0 +1,110 @@
+./helpers.h:6:3
+  - std::cout << "from a header " << Value << std::endl
+  + logging::log("from a header {}", Value)
+input.cpp:19:3
+  - std::cout << "templated: " << t << std::endl
+  + logging::log("templated: {}", t)
+input.cpp:27:5
+  - std::cout << "Widget " << w << "x" << h
+              << " area=" << w * h << '\n'
+  + logging::log("Widget {}x{} area={}", w, h, w * h)
+input.cpp:45:3
+  - std::cout << "plain" << std::endl
+  + logging::log("plain")
+input.cpp:46:3
+  - std::cout << "plain newline\n"
+  + logging::log("plain newline")
+input.cpp:47:3
+  - std::cout << n << std::endl
+  + logging::log("{}", n)
+input.cpp:48:3
+  - std::cout << "a=" << a << " b=" << b << std::endl
+  + logging::log("a={} b={}", a, b)
+input.cpp:49:3
+  - std::cout << a << b << n << std::endl
+  + logging::log("{}{}{}", a, b, n)
+input.cpp:50:3
+  - std::cout << "multi "
+            << "line "
+            << a // a comment
+            << " chain"
+            << std::endl
+  + logging::log("multi line {} chain", a)
+input.cpp:55:3
+  - cout << "using namespace " << s << endl
+  + logging::log("using namespace {}", s)
+input.cpp:56:3
+  - std::cout << "adjacent " "literals " << a << std::endl
+  + logging::log("adjacent literals {}", a)
+input.cpp:57:3
+  - std::cout << R"(raw "string" \ here)" << std::endl
+  + logging::log("raw \"string\" \\ here")
+input.cpp:58:3
+  - std::cout << "braces {} and {" << a << "}" << std::endl
+  + logging::log("braces {{}} and {{{}}}", a)
+input.cpp:59:3
+  - std::cout << "quote \" backslash \\ tab\tend" << std::endl
+  + logging::log("quote \" backslash \\ tab\tend")
+input.cpp:60:3
+  - std::cout << "chars " << 'q' << '"' << '\'' << c << std::endl
+  + logging::log("chars q\"'{}", c)
+input.cpp:61:3
+  - std::cout << "endl mid" << std::endl << "next line " << b << std::endl
+  + logging::log("endl mid\nnext line {}", b)
+input.cpp:62:3
+  - std::cout << "expr " << a + b << " call " << add(a, b)
+            << " ternary " << (a > b ? "yes" : "no") << std::endl
+  + logging::log("expr {} call {} ternary {}", a + b, add(a, b), (a > b ? "yes" : "no"))
+input.cpp:68:3
+  - std::cout << "macros " << WHERE << " " << TWICE(a) << std::endl
+  + logging::log("macros {} {}", WHERE, TWICE(a))
+input.cpp:70:3
+  - std::cout << std::endl
+  + logging::log("")
+input.cpp:79:3
+  - std::cerr << "to cerr " << a << std::endl
+  + logging::error("to cerr {}", a)
+input.cpp:82:3: skipped because it uses the stream manipulator std::hex
+  std::cout << std::hex << n << std::dec << std::endl
+input.cpp:83:3: skipped because it uses the stream manipulator std::setw(5)
+  std::cout << std::setw(5) << n << std::endl
+input.cpp:85:3: skipped because the chain is inside a macro
+  LOG_IT("in a macro " << a)
+input.cpp:64:3
+  - std::cout << "member " << t.id << " " << t.name() << " " << tp->id
+            << " index " << vec[1] << " map " << m["k"] << std::endl
+  + logging::log("member {} {} {} index {} map {}", t.id, t.name(), tp->id, vec[1], m["k"])
+input.cpp:66:3
+  - std::cout << "concat " << s + "!" << " cstr " << cs << " pi " << pi
+            << std::endl
+  + logging::log("concat {} cstr {} pi {}", s + "!", cs, pi)
+input.cpp:69:3
+  - std::cout << "lambda " << [&] { return a + 1; }() << std::endl
+  + logging::log("lambda {}", [&] { return a + 1; }())
+input.cpp:71:31
+  - std::cout << "loop " << i << std::endl
+  + logging::log("loop {}", i)
+input.cpp:72:10
+  - std::cout << "if " << a << std::endl
+  + logging::log("if {}", a)
+input.cpp:72:53
+  - std::cout << "else\n"
+  + logging::log("else")
+input.cpp:73:22
+  - std::cout << "in lambda " << b << std::endl
+  + logging::log("in lambda {}", b)
+input.cpp:84:7: skipped because the result is used, e.g. in an if condition
+  std::cout << ""
+warnings.cpp:15:3
+  - std::cout << "flag " << ok << std::endl
+  + logging::log("flag {}", ok)
+  ! ok is a bool: << prints 1/0, {} prints true/false
+warnings.cpp:16:3
+  - std::cout << "pointer " << ptr << std::endl
+  + logging::log("pointer {}", ptr)
+  ! ptr is a pointer: it may need a cast to (const void *)
+warnings.cpp:17:3
+  - std::cout << "point " << Point{1, 2} << std::endl
+  + logging::log("point {}", Point{1, 2})
+  ! Point{1, 2} has type Point, which needs a formatter
+30 change(s), 4 skipped. Dry run: re-run with --apply to write them.
