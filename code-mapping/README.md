@@ -3,7 +3,9 @@
 A Clang LibTooling tool that maps which files in a project `#include` which, and
 writes a Markdown report with [Mermaid](https://mermaid.js.org) diagrams. GitHub,
 GitLab and VS Code's Markdown preview draw the diagrams, so there's nothing else
-to install to read it.
+to install to read it. Each diagram is followed by the same information as a
+plain list, so the report also reads well in a terminal with
+[glow](https://github.com/charmbracelet/glow) or `less`, which don't draw Mermaid.
 
 See [`example/codemap.md`](example/codemap.md) for the report on the small
 project in `example/`.
@@ -12,9 +14,11 @@ The report has four parts:
 
 1. **Folders**: one box per folder, with arrows for "something in A includes
    something in B" and a count on each. Outside libraries (zlib, boost, ...)
-   appear as hexagons. Start here on a big codebase.
+   appear as hexagons. Start here on a big codebase. The list below it gives
+   each folder and what it includes.
 2. **Files**: every project file, boxed by folder, with an arrow per `#include`.
-   Includes that are part of a cycle are drawn in red.
+   Includes that are part of a cycle are drawn in red. The list below it gives
+   each file and what it includes, with `(cycle)` after any include in a loop.
 3. **Where to start reading**: the most-included headers (the core types) and
    the files with the most includes (the glue code).
 4. **Include cycles**: each `#include` that is part of a loop.
@@ -44,6 +48,7 @@ directory; only files under it are mapped.
 cd example
 cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 ../build/codemap build > codemap.md
+glow codemap.md     # or open it on GitHub / in VS Code for the diagrams
 ```
 
 ## How it works
@@ -56,7 +61,7 @@ cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 | `libraryName()` | Guesses a library from how the header is spelled: `<boost/asio.hpp>` → boost, `<zlib.h>` → zlib, `<vector>` → std. |
 | `id()` | Gives every file, folder and library a short Mermaid id (`n0`, `n1`, ...), since ids can't contain `/` or `.`. |
 | `reaches()` | Follows includes from one file to see if it gets back to another; an edge `a → b` is in a cycle when `b` reaches `a`. |
-| `main` | Loads the compilation database, runs the tool over every file, then prints the four sections. |
+| `main` | Loads the compilation database, runs the tool over every file, then prints the four sections. The two diagram sections each print a Mermaid block followed by the same edges as a nested list. |
 
 ## Limits
 

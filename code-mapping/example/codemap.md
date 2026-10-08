@@ -26,6 +26,13 @@ flowchart LR
   n7["storage/src"] -->|1| n0
 ```
 
+- app → core/include/shop (1), service/include/shop (1), storage/include/shop (1)
+- core/src → core/include/shop (2)
+- service/include/shop → core/include/shop (3)
+- service/src → service/include/shop (1)
+- storage/include/shop → core/include/shop (2)
+- storage/src → storage/include/shop (2), zlib (1)
+
 ## Files
 
 ```mermaid
@@ -74,6 +81,27 @@ flowchart LR
   n26 --> n23
   n27 --> n24
 ```
+
+- app
+  - main.cpp → core/include/shop/ConsoleLogger.h, service/include/shop/OrderService.h, storage/include/shop/CompressedStorage.h
+- core/include/shop
+  - ConsoleLogger.h → ILogger.h
+  - ILogger.h
+  - IStorage.h → Order.h
+  - Order.h
+- core/src
+  - ConsoleLogger.cpp → core/include/shop/ConsoleLogger.h
+  - Order.cpp → core/include/shop/Order.h
+- service/include/shop
+  - OrderService.h → core/include/shop/ILogger.h, core/include/shop/IStorage.h, core/include/shop/Order.h
+- service/src
+  - OrderService.cpp → service/include/shop/OrderService.h
+- storage/include/shop
+  - CompressedStorage.h → FileStorage.h
+  - FileStorage.h → core/include/shop/ILogger.h, core/include/shop/IStorage.h
+- storage/src
+  - CompressedStorage.cpp → storage/include/shop/CompressedStorage.h
+  - FileStorage.cpp → storage/include/shop/FileStorage.h
 
 ## Where to start reading
 

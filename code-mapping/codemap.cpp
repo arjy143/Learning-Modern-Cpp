@@ -139,6 +139,15 @@ int main(int argc, char** argv) {
     }
     llvm::outs() << "```\n\n";
 
+    // The same as text, for terminals (glow, less): folder → what it includes (count).
+    std::map<std::string, std::string> folderList;
+    for (auto& [pair, n] : folderEdges) {
+        std::string& list = folderList[pair.first];
+        list += (list.empty() ? "" : ", ") + pair.second + " (" + std::to_string(n) + ")";
+    }
+    for (auto& [dir, list] : folderList) llvm::outs() << "- " << dir << " → " << list << "\n";
+    llvm::outs() << "\n";
+
     // 2. Files, boxed by folder. Includes that are part of a cycle are drawn in red.
     std::map<std::string, std::set<std::string>> byFolder;
     for (auto& [from, to] : edges) {
@@ -152,19 +161,38 @@ int main(int argc, char** argv) {
             llvm::outs() << "    " << id(file) << "[\"" << llvm::sys::path::filename(file) << "\"]\n";
         llvm::outs() << "  end\n";
     }
-    std::vector<Edge> cycles;
+    std::set<Edge> cycles;
     std::string red;
     int n = 0;
     for (auto& [from, to] : edges) {
         llvm::outs() << "  " << id(from) << " --> " << id(to) << "\n";
         if (reaches(to, from)) {
-            cycles.push_back({from, to});
+            cycles.insert({from, to});
             red += (red.empty() ? "" : ",") + std::to_string(n);
         }
         n++;
     }
     if (!red.empty()) llvm::outs() << "  linkStyle " << red << " stroke:#d33,stroke-width:3px\n";
     llvm::outs() << "```\n\n";
+
+    // The same as text: each folder, then its files and what they include.
+    // Files in the same folder are shown by name only; others by their full path.
+    std::map<std::string, std::string> includeList;
+    for (auto& [from, to] : edges) {
+        std::string name = folder(to) == folder(from) ? llvm::sys::path::filename(to).str() : to;
+        if (cycles.count({from, to})) name += " (cycle)";
+        std::string& list = includeList[from];
+        list += (list.empty() ? "" : ", ") + name;
+    }
+    for (auto& [dir, files] : byFolder) {
+        llvm::outs() << "- " << dir << "\n";
+        for (auto& file : files) {
+            llvm::outs() << "  - " << llvm::sys::path::filename(file);
+            if (includeList.count(file)) llvm::outs() << " → " << includeList[file];
+            llvm::outs() << "\n";
+        }
+    }
+    llvm::outs() << "\n";
 
     // 3. Where to start reading: the most-included headers, and the files that include the most.
     std::map<std::string, int> includedBy, includes;
