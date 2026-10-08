@@ -1,6 +1,7 @@
 // codemap: maps which files in a project #include which, and prints a Markdown
 // report with Mermaid diagrams (GitHub and VS Code's preview draw them).
 // Run it from your project's root directory:   codemap build > codemap.md
+// Add --dot to also write folders.dot and files.dot for Graphviz and graph-easy.
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Frontend/FrontendActions.h>
 #include <clang/Lex/PPCallbacks.h>
@@ -101,8 +102,9 @@ void top10(const std::map<std::string, int>& counts) {
 }
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
-        llvm::errs() << "usage: codemap <build dir containing compile_commands.json>\n";
+    bool writeDot = argc == 3 && std::string(argv[2]) == "--dot";
+    if (argc != 2 && !writeDot) {
+        llvm::errs() << "usage: codemap <build dir containing compile_commands.json> [--dot]\n";
         return 1;
     }
     llvm::sys::fs::real_path(".", root);
@@ -210,4 +212,27 @@ int main(int argc, char** argv) {
     llvm::outs() << "\n## Include cycles\n\n";
     if (cycles.empty()) llvm::outs() << "None found.\n";
     for (auto& [from, to] : cycles) llvm::outs() << "- `" << from << "` includes `" << to << "`\n";
+
+    // 5. With --dot, also write both graphs in Graphviz's format, for `dot` (images) and `graph-easy` (terminal).
+    if (!writeDot) return 0;
+    std::error_code ec;
+    llvm::raw_fd_ostream folders("folders.dot", ec);
+    folders << "digraph {\n";
+    for (auto& [lib, files] : libraries)
+        if (lib != "std") folders << "  \"" << lib << "\" [shape=hexagon];\n";
+    for (auto& [pair, n] : folderEdges)
+        folders << "  \"" << pair.first << "\" -> \"" << pair.second << "\" [label=\"" << n << "\"];\n";
+    folders << "}\n";
+
+    llvm::raw_fd_ostream files("files.dot", ec);
+    files << "digraph {\n";
+    for (auto& [dir, names] : byFolder) {
+        files << "  subgraph \"cluster_" << dir << "\" {\n    label=\"" << dir << "\";\n";
+        for (auto& file : names) files << "    \"" << file << "\" [label=\"" << llvm::sys::path::filename(file) << "\"];\n";
+        files << "  }\n";
+    }
+    for (auto& [from, to] : edges)
+        files << "  \"" << from << "\" -> \"" << to << "\"" << (cycles.count({from, to}) ? " [color=red]" : "") << ";\n";
+    files << "}\n";
+    llvm::errs() << "wrote folders.dot and files.dot\n";
 }

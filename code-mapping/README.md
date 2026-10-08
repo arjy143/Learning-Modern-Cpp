@@ -23,6 +23,9 @@ The report has four parts:
    the files with the most includes (the glue code).
 4. **Include cycles**: each `#include` that is part of a loop.
 
+With `--dot`, it also writes the folder and file graphs as `folders.dot` and
+`files.dot` (see below).
+
 It only runs the preprocessor, never the parser, so it's fast: yaml-cpp's 35
 source files take about 1.5 seconds.
 
@@ -51,6 +54,24 @@ cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 glow codemap.md     # or open it on GitHub / in VS Code for the diagrams
 ```
 
+### Diagrams without GitHub or VS Code
+
+Add `--dot` to also write the two graphs as `folders.dot` and `files.dot`, in
+Graphviz's format. Both tools below are standard Ubuntu/Debian packages:
+
+```sh
+sudo apt install graphviz libgraph-easy-perl
+
+../build/codemap build --dot > codemap.md
+graph-easy --as=boxart folders.dot           # folder graph as boxes and arrows, in the terminal
+dot -Tsvg files.dot -o files.svg             # full file graph as an image (cycles in red)
+xdg-open files.svg
+```
+
+`graph-easy` is best kept to the folder graph: on a big project the file graph
+gets too wide for a terminal and slow to lay out. `dot` handles it in a fraction
+of a second.
+
 ## How it works
 
 | Part of `codemap.cpp` | What it does |
@@ -61,7 +82,7 @@ glow codemap.md     # or open it on GitHub / in VS Code for the diagrams
 | `libraryName()` | Guesses a library from how the header is spelled: `<boost/asio.hpp>` → boost, `<zlib.h>` → zlib, `<vector>` → std. |
 | `id()` | Gives every file, folder and library a short Mermaid id (`n0`, `n1`, ...), since ids can't contain `/` or `.`. |
 | `reaches()` | Follows includes from one file to see if it gets back to another; an edge `a → b` is in a cycle when `b` reaches `a`. |
-| `main` | Loads the compilation database, runs the tool over every file, then prints the four sections. The two diagram sections each print a Mermaid block followed by the same edges as a nested list. |
+| `main` | Loads the compilation database, runs the tool over every file, then prints the four sections. The two diagram sections each print a Mermaid block followed by the same edges as a nested list. With `--dot`, section 5 writes the same two graphs as DOT files, where real paths can be node names, so no ids are needed. |
 
 ## Limits
 
